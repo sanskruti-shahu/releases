@@ -88,6 +88,6 @@ func main() {
 
 	fmt.Println("All files written and now server started")
 
-	http.Handle("/", http.FileServer(http.Dir(".")))
-	http.ListenAndServe(":8080", nil)
+	// http.Handle("/", http.FileServer(http.Dir(".")))
+	// http.ListenAndServe(":8080", nil)
 }
