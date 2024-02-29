@@ -27,21 +27,6 @@ func main() {
 		return
 	}
 
-	// fmt.Println(string(body))
-	fmt.Println("Data fetched")
-
-	// file, err := os.Open("releases.json")
-	// if err != nil {
-	// 	fmt.Println("Error opening JSON file:", err)
-	// 	return
-	// }
-	// defer file.Close()
-
-	// body, err := io.ReadAll(file)
-	// if err != nil {
-	// 	fmt.Println("Error reading JSON file:", err)
-	// 	return
-	// }
 	releases := []map[string]interface{}{}
 	if err := json.Unmarshal(body, &releases); err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
@@ -63,7 +48,7 @@ func main() {
 				if assetMap, ok := asset.(map[string]interface{}); ok {
 					fileName := assetMap["name"]
 					childPageContent += "<li>\n"
-					childPageContent += fmt.Sprintf("<a href=\"https://github.com/opentofu/opentofu/releases/download/%s/%s\">otf_%s</a>\n", version, fileName, fileName)
+					childPageContent += fmt.Sprintf("<a href=\"https://github.com/opentofu/opentofu/releases/download/%s/%s\">%s</a>\n", version, fileName, fileName)
 					childPageContent += "</li>\n"
 				}
 			}
@@ -86,8 +71,4 @@ func main() {
 		return
 	}
 
-	fmt.Println("All files written and now server started")
-
-	// http.Handle("/", http.FileServer(http.Dir(".")))
-	// http.ListenAndServe(":8080", nil)
 }
