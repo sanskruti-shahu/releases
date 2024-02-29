@@ -63,7 +63,7 @@ func main() {
 				if assetMap, ok := asset.(map[string]interface{}); ok {
 					fileName := assetMap["name"]
 					childPageContent += "<li>\n"
-					childPageContent += fmt.Sprintf("<a href=\"https://github.com/opentofu/opentofu/releases/download/%s/%s\">%s</a>\n", version, fileName, fileName)
+					childPageContent += fmt.Sprintf("<a href=\"https://github.com/opentofu/opentofu/releases/download/%s/%s\">otf_%s</a>\n", version, fileName, fileName)
 					childPageContent += "</li>\n"
 				}
 			}
