@@ -3,18 +3,44 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"io"
 	"net/http"
 	"os"
 )
 
+// Templates for main page and release page
+const (
+	mainPageTemplate = `<ul>
+	<li>
+		<a href="../">../</a>
+	</li>
+	{{ range . }}
+	<li>{{ $releaseName := .name | trimV }}
+		<a href="./{{ $releaseName }}/">{{ printf "tofu_%s" $releaseName }}</a>
+	</li>
+	{{ end }}
+	</ul>`
+	releasePageTemplate = `<ul>
+	<li>
+		<a href="../">../</a>
+	</li>
+	{{ range . }}
+	<li>
+		<a href="{{ .browser_download_url }}">{{ .name }}</a>
+	</li>
+	{{end}}
+	</ul>`
+)
+
 func main() {
+	const (
+		githubAPIEndpoint = "https://api.github.com/repos/opentofu/opentofu/releases"
+		htmlFileName      = "index.html"
+	)
 
-	const githubApiEndpoint = "https://api.github.com/repos/opentofu/opentofu/releases"
-
-	mainPageContent := "<ul>\n<li>\n<a href=\"../\">../</a></li>\n"
-
-	response, err := http.Get(githubApiEndpoint)
+	// Fetch releases from GitHub API
+	response, err := http.Get(githubAPIEndpoint)
 	if err != nil {
 		fmt.Println("Error fetching releases: ", err)
 		return
@@ -27,48 +53,77 @@ func main() {
 		return
 	}
 
+	// Unmarshal JSON response
 	releases := []map[string]interface{}{}
 	if err := json.Unmarshal(body, &releases); err != nil {
 		fmt.Println("Error unmarshalling JSON: ", err)
 		return
 	}
 
+	// Create main HTML file
+	htmlFile, err := os.Create(htmlFileName)
+	if err != nil {
+		fmt.Println("Error creating HTML file: ", err)
+		return
+	}
+	defer htmlFile.Close()
+
+	// Function to remove the first character of a string
+	funcMap := template.FuncMap{
+		"trimV": func(s string) string {
+			if len(s) <= 1 {
+				return ""
+			}
+			return s[1:]
+		},
+	}
+
+	// Parse mainPage template
+	mainPageTmpl, err := template.New("mainPageTemplate").Funcs(funcMap).Parse(mainPageTemplate)
+	if err != nil {
+		fmt.Println("Error parsing mainPage template: ", err)
+		return
+	}
+
+	// Execute the mainPage template and write to the main index.html
+	if err := mainPageTmpl.Execute(htmlFile, releases); err != nil {
+		fmt.Println("Error executing mainPage template: ", err)
+		return
+	}
+
+	// Parse releasePage template
+	releasePageTmpl, err := template.New("releasePageTemplate").Parse(releasePageTemplate)
+	if err != nil {
+		fmt.Println("Error parsing releasePage template: ", err)
+		return
+	}
+
+	// Iterate over releases to create release pages
 	for _, release := range releases {
-		versionTrimmed := release["name"].(string)[1:]
-		version := release["name"].(string)
-		// child page
-		path := versionTrimmed + "/"
+		// Extract version from release name
+		version := release["name"].(string)[1:]
+		path := version + "/"
+
+		// Create directory for release
 		if err := os.Mkdir(path, 0755); err != nil && !os.IsExist(err) {
 			fmt.Println("Error creating directory: ", err)
 			return
 		}
-		childPageContent := "<ul>\n<li>\n<a href=\"../\">../</a></li>\n"
-		if assets, ok := release["assets"].([]interface{}); ok {
-			for _, asset := range assets {
-				if assetMap, ok := asset.(map[string]interface{}); ok {
-					fileName := assetMap["name"]
-					childPageContent += "<li>\n"
-					childPageContent += fmt.Sprintf("<a href=\"https://github.com/opentofu/opentofu/releases/download/%s/%s\">%s</a>\n", version, fileName, fileName)
-					childPageContent += "</li>\n"
-				}
-			}
-		}
 
-		childPageContent += "</ul>\n"
-		if err := os.WriteFile(path+"/index.html", []byte(childPageContent), 0644); err != nil {
-			fmt.Println("Error writing child page: ", err)
+		// Create HTML file for release page
+		htmlFile, err := os.Create(path + htmlFileName)
+		if err != nil {
+			fmt.Println(fmt.Sprintf("Error creating HTML file, %s%s: ", path, htmlFileName), err)
 			return
 		}
-		// main page
-		mainPageContent += "<li>\n"
-		mainPageContent += fmt.Sprintf("<a href=\"./%s\">tofu_%s</a>\n", path, versionTrimmed)
-		mainPageContent += "</li>\n"
-	}
-	mainPageContent += "</ul>\n"
+		defer htmlFile.Close()
 
-	if err := os.WriteFile("index.html", []byte(mainPageContent), 0644); err != nil {
-		fmt.Println("Error writing main page: ", err)
-		return
+		// Execute releasePage template and write to releases' index.html
+		if assets, ok := release["assets"].([]interface{}); ok {
+			if err := releasePageTmpl.Execute(htmlFile, assets); err != nil {
+				fmt.Println(fmt.Sprintf("Error executing releasePage template for %s%s: ", path, htmlFileName), err)
+				return
+			}
+		}
 	}
-
 }
