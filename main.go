@@ -39,8 +39,26 @@ func main() {
 		htmlFileName      = "index.html"
 	)
 
+	// Create client with custom user-agent
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", githubAPIEndpoint, nil)
+	if err != nil {
+		fmt.Println("Error creating request: ", err)
+		return
+	}
+	req.Header.Set("User-Agent", "opentofu releases page")
+
+	// Check for GitHub token in environment variable
+	token := os.Getenv("GITHUB_TOKEN")
+	fmt.Println("token is", token)
+	if token != "" {
+		// If token is available, set it in request header
+		req.Header.Set("Authorization", "token "+token)
+		fmt.Println("token is set")
+	}
+
 	// Fetch releases from GitHub API
-	response, err := http.Get(githubAPIEndpoint)
+	response, err := client.Do(req)
 	if err != nil {
 		fmt.Println("Error fetching releases: ", err)
 		return
@@ -60,13 +78,12 @@ func main() {
 		return
 	}
 
-	// Create main HTML file
+	// Create main index.html file
 	htmlFile, err := os.Create(htmlFileName)
 	if err != nil {
-		fmt.Println("Error creating HTML file: ", err)
+		fmt.Println("Error creating main HTML file: ", err)
 		return
 	}
-	defer htmlFile.Close()
 
 	// Function to remove the first character of a string
 	funcMap := template.FuncMap{
@@ -91,6 +108,12 @@ func main() {
 		return
 	}
 
+	// Handling error while closing main index.html file
+	if err := htmlFile.Close(); err != nil {
+		fmt.Println("Error closing main HTML file: ", err)
+		return
+	}
+
 	// Parse releasePage template
 	releasePageTmpl, err := template.New("releasePageTemplate").Parse(releasePageTemplate)
 	if err != nil {
@@ -104,19 +127,18 @@ func main() {
 		version := release["name"].(string)[1:]
 		path := version + "/"
 
-		// Create directory for release
+		// Create directory for each release
 		if err := os.Mkdir(path, 0755); err != nil && !os.IsExist(err) {
-			fmt.Println("Error creating directory: ", err)
+			fmt.Println(fmt.Sprintf("Error creating %s directory: ", version), err)
 			return
 		}
 
-		// Create HTML file for release page
+		// Create index.html file for release page
 		htmlFile, err := os.Create(path + htmlFileName)
 		if err != nil {
 			fmt.Println(fmt.Sprintf("Error creating HTML file, %s%s: ", path, htmlFileName), err)
 			return
 		}
-		defer htmlFile.Close()
 
 		// Execute releasePage template and write to releases' index.html
 		if assets, ok := release["assets"].([]interface{}); ok {
@@ -124,6 +146,12 @@ func main() {
 				fmt.Println(fmt.Sprintf("Error executing releasePage template for %s%s: ", path, htmlFileName), err)
 				return
 			}
+		}
+
+		// Handling error while closing releases' index.html file
+		if err := htmlFile.Close(); err != nil {
+			fmt.Println(fmt.Sprintf("Error closing HTML file, %s%s: ", path, htmlFileName), err)
+			return
 		}
 	}
 }
