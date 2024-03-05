@@ -43,23 +43,24 @@ func realMain() int {
 		htmlFileName      = "index.html"
 	)
 
-	// Create client with custom user-agent
+	// Check for GitHub token in environment variable
+	token := os.Getenv("GITHUB_TOKEN")
+	if token == "" {
+		fmt.Println("No token")
+		return 1
+	}
+	
+	// Create client
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", githubAPIEndpoint, nil)
 	if err != nil {
 		fmt.Println("Error creating request: ", err)
 		return 1
 	}
+	// Set custom user-agent in request header
 	req.Header.Set("User-Agent", "opentofu releases page")
-
-	// Check for GitHub token in environment variable
-	token := os.Getenv("GITHUB_TOKEN")
-	fmt.Println("token is", token)
-	if token != "" {
-		// If token is available, set it in request header
-		req.Header.Set("Authorization", "token "+token)
-		fmt.Println("token is set")
-	}
+	// Set token in request header
+	req.Header.Set("Authorization", "token "+token)
 
 	// Fetch releases from GitHub API
 	response, err := client.Do(req)
