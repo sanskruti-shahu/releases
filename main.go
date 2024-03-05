@@ -46,7 +46,7 @@ func realMain() int {
 	// Check for GitHub token in environment variable
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
-		fmt.Println("No token")
+		fmt.Println("Failed to retrieve Authorization token from environment variable. Please ensure that 'GITHUB_TOKEN' is set properly.")
 		return 1
 	}
 	
