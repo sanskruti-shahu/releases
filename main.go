@@ -123,7 +123,7 @@ func generateReleasePages() int {
 	}
 
 	// Execute the mainPage template and write to the main index.html
-	if err := mainPageTmpl.Execute(htmlFile, releases); handleFileClose(htmlFile, err){
+	if err := mainPageTmpl.Execute(htmlFile, releases); handleFileClose(htmlFile, err) {
 		fmt.Println("Error executing mainPage template: ", err)
 		return 1
 	}
@@ -136,7 +136,7 @@ func generateReleasePages() int {
 
 	// Parse releasePage template
 	releasePageTmpl, err := template.New("releasePageTemplate").Parse(releasePageTemplate)
-	if handleFileClose(htmlFile, err) {
+	if err != nil {
 		fmt.Println("Error parsing releasePage template: ", err)
 		return 1
 	}
@@ -174,12 +174,5 @@ func generateReleasePages() int {
 			return 1
 		}
 	}
-
-	// Handling error while closing main index.html file
-	if err := htmlFile.Close(); err != nil {
-		fmt.Println("Error closing main HTML file: ", err)
-		return 1
-	}
-
 	return 0
 }
