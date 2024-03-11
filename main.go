@@ -34,25 +34,25 @@ const (
 )
 
 func main() {
-	os.Exit(realMain())
+	os.Exit(generateReleasePages())
 }
 
 // Function to handle errors and close file
 func handleFileClose(file *os.File, err error) bool {
-    if err != nil {
-        if file != nil {
-            // Close the file if it's open
-            closeErr := file.Close()
-            if closeErr != nil {
-                fmt.Println(fmt.Sprintf("Error closing file: %s", closeErr))
-            }
-        }
-        return true
-    }
-    return false
+	if err != nil {
+		if file != nil {
+			// Close the file if it's open
+			closeErr := file.Close()
+			if closeErr != nil {
+				fmt.Printf("Error closing file: %s\n", closeErr)
+			}
+		}
+		return true
+	}
+	return false
 }
 
-func realMain() int {
+func generateReleasePages() int {
 	const (
 		githubAPIEndpoint = "https://api.github.com/repos/opentofu/opentofu/releases"
 		htmlFileName      = "index.html"
@@ -72,7 +72,7 @@ func realMain() int {
 		fmt.Println("Error creating request: ", err)
 		return 1
 	}
-	// Set custom user-agent in request header
+	// Set user-agent in request header
 	req.Header.Set("User-Agent", "opentofu releases page")
 	// Set token in request header
 	req.Header.Set("Authorization", "token "+token)
@@ -174,6 +174,12 @@ func realMain() int {
 			return 1
 		}
 	}
-	htmlFile.Close()
+
+	// Handling error while closing main index.html file
+	if err := htmlFile.Close(); err != nil {
+		fmt.Println("Error closing main HTML file: ", err)
+		return 1
+	}
+
 	return 0
 }
