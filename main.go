@@ -58,13 +58,6 @@ func generateReleasePages() int {
 		htmlFileName      = "index.html"
 	)
 
-	// Check for GitHub token in environment variable
-	token := os.Getenv("GITHUB_TOKEN")
-	if token == "" {
-		fmt.Println("Failed to retrieve Authorization token from environment variable. Please ensure that 'GITHUB_TOKEN' is set properly.")
-		return 1
-	}
-
 	// Create client
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", githubAPIEndpoint, nil)
@@ -72,10 +65,13 @@ func generateReleasePages() int {
 		fmt.Println("Error creating request: ", err)
 		return 1
 	}
-	// Set user-agent in request header
 	req.Header.Set("User-Agent", "opentofu releases page")
-	// Set token in request header
-	req.Header.Set("Authorization", "token "+token)
+	
+	// Check for GitHub token in environment variable
+	token := os.Getenv("GITHUB_TOKEN")
+	if token != "" {
+		req.Header.Set("Authorization", "token "+token)
+	}
 
 	// Fetch releases from GitHub API
 	response, err := client.Do(req)
